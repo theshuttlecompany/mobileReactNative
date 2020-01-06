@@ -1,0 +1,78 @@
+cameras:
+    camera1:
+        type: isometric
+
+
+sources:
+    nextzen:
+        type: GeoJSON
+        url: http://10.0.2.2:8080/data/v3/{z}/{x}/{y}.geojson
+        # url_params:
+        #     api_key: 3eNR4t5FQtO6bG7T3QfvTw
+        max_zoom: 16
+        tile_size: 512
+scene:
+    background:
+        color: '#dfdfdf'
+layers:
+    water:
+        data: { source: nextzen }
+        draw:
+            polygons:
+                order: 2
+                color: '#87CEFA'
+    landcover:
+        data: { source: nextzen }
+        draw:
+            polygons:
+                order: 1
+                color: '#80c904'
+    landuse:
+        data: { source: nextzen }
+        draw:
+            polygons:
+                order: 3
+                color: '#fcf4a3'
+    transportation:
+        data: { source: nextzen}
+        filter: { not: { kind: [rail, ferry] } }
+        draw:
+            lines:
+                order: 4
+                color: '#ffffff'
+                width: [[7,0.0px], [10, .5px], [15, .75px], [17, 5m]]
+    boundary:
+        data: { source: nextzen}
+        draw:
+            polygon:
+                order: 1
+                color: '#d55111'
+    building:
+        data: { source: nextzen }
+        draw:
+            polygons:
+                order: 1
+                color: '#d55111'
+    place:
+        data: { source: nextzen }
+        draw:
+            text:
+                font:
+                    family: Arial
+                    size: 14px
+                    style: italic
+                    weight: bold
+                    fill: '#d55'
+                    stroke: { color: white, width: 2 }
+                    transform: uppercase
+    poi:
+        data: { source: nextzen }
+        draw:
+            text:
+                font:
+                    family: Arial
+                    size: 14px
+                    style: italic
+                    fill: '#ccc'
+                    transform: uppercase
+

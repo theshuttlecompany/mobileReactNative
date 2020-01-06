@@ -1,0 +1,1 @@
+export const ponitStyle = "{ style: 'points', color: '#fff', size: [[11 ,[20px, 20px]],[13, [25px, 25px]], [14, [20px,20px]]], order: 2000, collide: false }"
