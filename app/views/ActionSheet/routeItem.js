@@ -1,13 +1,15 @@
-import React, { Component } from 'react';
-import { View, Text } from 'react-native';
+import React, { Component } from 'react'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
-import styles from './styles';
-import Bus  from '../../statics/Bus';
-import Train from '../../statics/Train';
-import Van from '../../statics/Van';
-import Rikshaw from '../../statics/Rikshaw';
-import BRTS from '../../statics/BRTS';
-import { Icon } from 'react-native-elements';
+import moment from 'moment-timezone'
+
+import styles from './styles'
+import Bus from '../../statics/Bus'
+import Train from '../../statics/Train'
+import Van from '../../statics/Van'
+import Rikshaw from '../../statics/Rikshaw'
+import BRTS from '../../statics/BRTS'
+import { Icon } from 'react-native-elements'
 
 // const Bus = React.memo(() => {
 
@@ -25,15 +27,11 @@ import { Icon } from 'react-native-elements';
 
 // })
 
-const Walk = React.memo(() => {
-	return(
+const Walk = React.memo(({ duration }) => {
+	return (
 		<View>
-			<Icon 
-				name='walk'
-				size={25}
-				type='material-community'
-			/>
-			<Text style={styles.walkTimeText}>37</Text>
+			<Icon name="walk" size={25} type="material-community" />
+			<Text style={styles.walkTimeText}>{Math.ceil(duration / 60)}</Text>
 		</View>
 	)
 })
@@ -42,59 +40,79 @@ const Walk = React.memo(() => {
 
 // })
 
-const Seperator = React.memo (() => {
-	return(
+const Seperator = React.memo(() => {
+	return (
 		<Icon
 			containerStyle={styles.seperator}
-			name='chevron-right'
+			name="chevron-right"
 			size={22}
-			type='entypo'
-      />
+			type="entypo"
+		/>
 	)
 })
 
 export default class RouteItem extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-    };
-  }
+	constructor(props) {
+		super(props)
+		this.state = {}
+	}
 
-  render() {
-    return (
-		<View
-			style={styles.routeItemContainer}
-		>
-			<View
-				style={{width: '80%'}}
-			>
-				<Text style={styles.recomText}>RECOMMENDED ROUTE</Text>
-				<ScrollView 
-					horizontal
-					contentContainerStyle={{paddingHorizontal: 10}}
-					showsHorizontalScrollIndicator={false}
-				>
-					<Walk />
+	renderInner = legs => {
+		return legs.map((leg, i) => {
+			let item = null
+			switch (leg.mode) {
+				case 'WALK':
+					item = <Walk duration={leg.duration} />
+					break
+				case 'BUS':
+					item = <Bus />
+					break
+			}
+			if (i == legs.length - 1) {
+				return item
+			}
+			return (
+				<>
+					{item}
 					<Seperator />
-					<Bus height="35" width="45"/>
-					<Seperator />
-					<Train height="30" width="30"/>
-					<Seperator />
-					<Rikshaw height="32" width="32"/>
-					<Seperator />
-					<Van height="35" width="40"/>
-					<Seperator />
-					<BRTS height="35" width="40"/>
-					<Seperator />
-					<BRTS height="35" width="40"/>
-				</ScrollView>
-				<Text style={styles.timerangeText}>4:58 PM - 4:58 PM</Text>
-			</View>
-			<View style={styles.timeContainer}>
-				<Text style={styles.timeText}>42 min</Text>
-			</View>
-		</View>
-    );
-  }
+				</>
+			)
+		})
+	}
+
+	render() {
+		const { item, onPress } = this.props
+		let { duration, startTime, endTime, legs } = item
+		// startTime = moment
+		// 	.unix(startTime)
+		// 	.tz('Asia/Kolkata')
+		// 	.format('LT')
+		// endTime = moment
+		// 	.unix(endTime)
+		// 	.tz('Asia/Kolkata')
+		// 	.format('LT')
+		duration = (duration / 60).toFixed()
+		return (
+			<TouchableOpacity onPress={onPress}>
+				<View style={styles.routeItemContainer}>
+					<View style={{ width: '80%' }}>
+						<Text style={styles.recomText}>RECOMMENDED ROUTE</Text>
+						<ScrollView
+							horizontal
+							contentContainerStyle={{ paddingHorizontal: 10 }}
+							showsHorizontalScrollIndicator={false}
+						>
+							{this.renderInner(legs)}
+						</ScrollView>
+						{/* <Text style={styles.timerangeText}>
+						{startTime} - {endTime}
+					</Text> */}
+					</View>
+					<View style={styles.timeContainer}>
+						<Text style={styles.timeText}>{duration} min</Text>
+					</View>
+				</View>
+			</TouchableOpacity>
+		)
+	}
 }
-

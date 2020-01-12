@@ -1,17 +1,29 @@
-import React, { Component } from 'react';
-import { View, Text, SafeAreaView, TouchableHighlight } from 'react-native';
-import { Icon, Divider } from 'react-native-elements';
-import { MapView } from 'tangram-es-react-native';
-import { connect } from 'react-redux';
+import React, { Component } from 'react'
+import {
+	View,
+	Text,
+	SafeAreaView,
+	TouchableWithoutFeedback,
+	Image,
+} from 'react-native'
+import { Icon, Divider } from 'react-native-elements'
+import MapboxGL from '@react-native-mapbox-gl/maps'
+import { connect } from 'react-redux'
 
-import styles from './styles';
-import {MID_BULE_COLOR, GREEN, RED} from '../../constants/color';
-import debounce from '../../utils/debounce';
-import stopMarkerBitMap from '../../constants/stopMarker';
-import startMarkerBitMap from '../../constants/startMarker';
-import { ponitStyle } from '../../constants/markerStyles';
-import { LISTENER } from '../ActionSheet';
-import EventEmitter from '../../utils/events';
+import styles from './styles'
+import { MID_BULE_COLOR, GREEN, RED } from '../../constants/color'
+import { LISTENER as LISTENER_ACTIONSHEET } from '../ActionSheet'
+import { LISTENER as LISTENER_SEARCH_PLACE } from '../SearchPlaceView'
+import EventEmitter from '../../utils/events'
+import {
+	setStart,
+	setEnd,
+	resetEnd,
+	resetStart,
+} from '../../actions/searchRoute'
+import startIcon from '../../statics/start.png'
+import endIcon from '../../statics/end.png'
+import fetchRoute from '../../api/fetchRoutes'
 
 const OPTION = {
 	START: 'start',
@@ -19,231 +31,269 @@ const OPTION = {
 	NONE: 'none',
 }
 
+const MAX_ZOOM = 17
+const MIN_ZOOM = 10
 
-const g = {latitude: 23.022477262781923, longitude: 72.58875296435085}
+const MAP_BOUNDS = {
+	ne: [72.7078, 23.2829],
+	sw: [72.428, 22.9156],
+}
+
+const startStyle = {
+	iconImage: startIcon,
+	iconSize: 0.2,
+	iconAnchor: 'bottom',
+	iconAllowOverlap: true,
+}
+
+const endStyle = {
+	iconImage: endIcon,
+	iconSize: 0.2,
+	iconAnchor: 'bottom',
+	iconAllowOverlap: true,
+}
+
+const CENTER = [72.5714, 23.0225]
 
 class HomeView extends Component {
 	constructor(props) {
-		super(props);
+		super(props)
 
 		this.state = {
-			geo : {
+			geo: {
 				longitude: 72.5714,
 				latitude: 23.0225,
 			},
 			selection: OPTION.NONE,
-			startLngLat: null,
-			endLagLat: null
-		};
+		}
 		this.mapRef = React.createRef()
-		this.startMarker = null;
-		this.endMarker = null;
-	}
-	
-	handlePanGesture = (e) => {
-		const {selection} = this.state;
-		if(selection === OPTION.NONE){
-			return;
-		}
-		if(selection === OPTION.START) {
-			return this.setPickUpLocation();
-		}
-		return this.setDropoffLocation();
-		
+		this.startMarker = null
+		this.endMarker = null
 	}
 
-	initializeMap = () => {
-		const { geo } = this.state;
-		this.mapRef.setGeoPosition(geo);
-		this.initializeMarker();
-	}
-
-	initializeMarker = () => {
-		this.mapRef.addMarker().then(marker => {
-			this.startMarker = marker;
-			marker.setVisible(false);
-			marker.setBitmap(startMarkerBitMap);
-			marker.setStylingFromString(ponitStyle);
-		});
-
-		this.mapRef.addMarker().then( marker => {
-			this.endMarker = marker;
-			marker.setVisible(false);
-			marker.setBitmap(stopMarkerBitMap);
-			marker.setStylingFromString(ponitStyle);
-		});
-	}
-	
 	onDrawerPressed = () => {
-		const { navigation } = this.props;
-		navigation.openDrawer(); 
+		const { navigation } = this.props
+		navigation.openDrawer()
 	}
-	
-	onPickupPinSelect = () => {
-		const { selection } = this.state;
-		if(selection == OPTION.START) {
+
+	showStartSearchSheet = () => {
+		EventEmitter.emit(LISTENER_SEARCH_PLACE, {
+			onOptionSelect: this.props.setStart,
+		})
+	}
+
+	showEndSearchSheet = () => {
+		EventEmitter.emit(LISTENER_SEARCH_PLACE, {
+			onOptionSelect: this.props.setEnd,
+		})
+	}
+
+	onStartPinSelect = () => {
+		const { selection } = this.state
+		this.props.resetStart()
+		if (selection == OPTION.START) {
 			this.setState({ selection: OPTION.NONE })
+			this.setStartLocation()
+		} else if (selection == OPTION.END) {
+			this.setState({ selection: OPTION.START })
+			this.setEndLocation()
 		} else {
-			this.setState({ selection: OPTION.START})
-			this._setPickUpLocation()
+			this.setState({ selection: OPTION.START })
 		}
 	}
-	
-	onDropOffPinSelect = () => {
-		const { selection } = this.state;
-		if(selection == OPTION.END) {
+
+	onEndPinSelect = () => {
+		const { selection } = this.state
+		this.props.resetEnd()
+		if (selection == OPTION.END) {
 			this.setState({ selection: OPTION.NONE })
+			this.setEndLocation()
+		} else if (selection == OPTION.START) {
+			this.setState({ selection: OPTION.END })
+			this.setStartLocation()
 		} else {
-			this.setState({ selection: OPTION.END})
-			this._setDropoffLocation()
+			this.setState({ selection: OPTION.END })
 		}
 	}
 
 	showActionSheet = () => {
-		EventEmitter.emit(LISTENER);
+		EventEmitter.emit(LISTENER_ACTIONSHEET)
 	}
 
-
-	_setPickUpLocation = () => {
-		this.mapRef.getGeoPosition().then( LonLat => {
-			this.setState({
-				startLngLat: LonLat
-			});
-			this.startMarker.setPoint(LonLat);
-			this.startMarker.setVisible(true);
+	setEndLocation = async () => {
+		const LonLang = await this.mapRef.getCenter()
+		this.props.setEnd({
+			name: `${LonLang[0].toFixed(4)} ${LonLang[1].toFixed(4)}`,
+			location: LonLang,
 		})
 	}
 
-	setPickUpLocation = debounce(this._setPickUpLocation, 300);
-	
-	_setDropoffLocation = () => {
-		this.mapRef.getGeoPosition().then( LonLat => { 
-			this.setState({
-				endLagLat: LonLat
-			});
-			this.endMarker.setPoint(LonLat);
-			this.endMarker.setVisible(true);
+	setStartLocation = async () => {
+		const LonLang = await this.mapRef.getCenter()
+		this.props.setStart({
+			name: `${LonLang[0].toFixed(4)} ${LonLang[1].toFixed(4)}`,
+			location: LonLang,
 		})
 	}
 
-	setDropoffLocation = debounce(this._setDropoffLocation, 300);
-	
 	renderSelectionPin = () => {
-		const { selection } = this.state;
-		if (selection != OPTION.NONE) {
-			return(<Icon 
-				iconStyle={styles.selectionPin}
-				name='map-pin'
-				type='font-awesome'
-				color={selection == OPTION.START ? GREEN : RED}
-				size={26}
-				/>)
+		const { selection } = this.state
+		if (selection == OPTION.START) {
+			return <Image source={startIcon} style={styles.selectionPin} />
+		} else if (selection == OPTION.END) {
+			return <Image source={endIcon} style={styles.selectionPin} />
+		} else {
+			return null
 		}
 	}
-		
+
 	renderPickMenu = () => {
-		const { selection, startLngLat, endLagLat } = this.state;
-		let startText = 'Your Pick Up Location'
-		let endText = 'Your destination Location'
-		if (startLngLat) {
-			startText = startLngLat.longitude.toFixed(4) + ' ' +  startLngLat.latitude.toFixed(4);
-		}
-		
-		if(endLagLat) {
-			endText = endLagLat.longitude.toFixed(4) + ' ' +  endLagLat.latitude.toFixed(4);
-		}
-		
-		return(
-			<View
-			style={styles.pickMenu}
-			>
-				<View style= {styles.pickItemContainer}>
-					<Icon
-						name='location'
-						type='evilicon'
-						color={MID_BULE_COLOR}
-					/>
-					<View style={{flex: 1, marginHorizontal: 10}}>
-						<Text style={styles.pickSubtitle}>Pick-up</Text>
-						<Text style={styles.pickTitle}>{startText}</Text>
+		const { selection } = this.state
+		const { start, end } = this.props
+		return (
+			<View style={styles.pickMenu}>
+				<TouchableWithoutFeedback onPress={this.showStartSearchSheet}>
+					<View style={styles.pickItemContainer}>
+						<Icon
+							name="location"
+							type="evilicon"
+							color={MID_BULE_COLOR}
+						/>
+						<View style={{ flex: 1, marginHorizontal: 10 }}>
+							<Text style={styles.pickSubtitle}>Pick-up</Text>
+							<Text style={styles.pickTitle}>{start.name}</Text>
+						</View>
+						<Icon
+							iconStyle={styles.icon}
+							name="map-pin"
+							type="font-awesome"
+							color={
+								selection == OPTION.START
+									? GREEN
+									: MID_BULE_COLOR
+							}
+							size={16}
+							onPress={this.onStartPinSelect}
+						/>
 					</View>
-					<Icon 
-					iconStyle={styles.icon}
-					name='map-pin'
-					type='font-awesome'
-					color={selection == OPTION.START ? GREEN : MID_BULE_COLOR}
-					size={16}
-					onPress={this.onPickupPinSelect}
-					/>
-				</View>
-				<View style= {styles.pickItemContainer}>
-					<Icon
-					name='location'
-					type='evilicon'
-					color={RED}
-					
-					/>
-					<View style={{flex: 1, marginHorizontal: 10}}>
-						<Text style={styles.pickSubtitle}>Drop-off</Text>
-						<Text style={styles.pickTitle}> {endText}</Text>
+				</TouchableWithoutFeedback>
+
+				<TouchableWithoutFeedback onPress={this.showEndSearchSheet}>
+					<View style={styles.pickItemContainer}>
+						<Icon name="location" type="evilicon" color={RED} />
+						<View style={{ flex: 1, marginHorizontal: 10 }}>
+							<Text style={styles.pickSubtitle}>Drop-off</Text>
+							<Text style={styles.pickTitle}> {end.name}</Text>
+						</View>
+						<Icon
+							iconStyle={styles.icon}
+							name="map-pin"
+							type="font-awesome"
+							color={
+								selection == OPTION.END ? RED : MID_BULE_COLOR
+							}
+							size={16}
+							onPress={this.onEndPinSelect}
+						/>
 					</View>
-					<Icon 
-						iconStyle={styles.icon}
-						name='map-pin'
-						type='font-awesome'
-						color={selection == OPTION.END ? RED : MID_BULE_COLOR}
-						size={16}
-						onPress={this.onDropOffPinSelect}
-					/>
-				</View>
+				</TouchableWithoutFeedback>
 			</View>
+		)
+	}
+
+	renderFindRouteButton = () => {
+		const { start, end } = this.props
+		if (start.location && end.location) {
+			return (
+				<Text
+					style={styles.findRouteButton}
+					onPress={this.showActionSheet}
+				>
+					Find Route
+				</Text>
 			)
 		}
+		return null
+	}
 
-		renderFindRouteButton = () => {
-			const { startLngLat, endLagLat } = this.state;
-			if(startLngLat && endLagLat ) {
-				return(
-					<Text 
-						style={styles.findRouteButton}
-						onPress={this.showActionSheet}	
-					>
-						Find Route
-					</Text>
-				)
-			}
-			return null;
+	renderStartPin = () => {
+		const { start } = this.props
+		if (!start.location) {
+			return null
 		}
-		
-		render() {
-			return (
-			<SafeAreaView
-				style={{flex:1}}
-			>
-				<MapView
-					ref={(r) =>this.mapRef =r}
-					style={styles.map}
-					scenePath={'./scene.yaml'}
-					zoom={14}
-					maxZoom={16}
-					minZoom={11}
-					onPan={this.handlePanGesture}
-					onSceneReady={this.initializeMap}
-					handleFling={false}
+
+		const feture = MapboxGL.geoUtils.makeFeature({
+			type: 'Point',
+			coordinates: start.location,
+		})
+		return (
+			<MapboxGL.ShapeSource id="shapeStartPin" shape={feture}>
+				<MapboxGL.SymbolLayer
+					id="symbolLayerStartPin"
+					minZoomLevel={1}
+					style={startStyle}
 				/>
+			</MapboxGL.ShapeSource>
+		)
+	}
+
+	renderEndPin = () => {
+		const { end } = this.props
+		if (!end.location) {
+			return null
+		}
+
+		const feture = MapboxGL.geoUtils.makeFeature({
+			type: 'Point',
+			coordinates: end.location,
+		})
+		return (
+			<MapboxGL.ShapeSource id="shapeEndPin" shape={feture}>
+				<MapboxGL.SymbolLayer
+					id="symbolLayerEndPin"
+					minZoomLevel={1}
+					style={endStyle}
+				/>
+			</MapboxGL.ShapeSource>
+		)
+	}
+
+	render() {
+		return (
+			<SafeAreaView style={{ flex: 1 }}>
+				<MapboxGL.MapView
+					ref={c => (this.mapRef = c)}
+					styleURL={MapboxGL.StyleURL.Street}
+					style={styles.map}
+					logoEnabled={false}
+					attributionEnabled={false}
+					regionWillChangeDebounceTime={100}
+				>
+					<MapboxGL.Camera
+						zoomLevel={12}
+						maxBounds={MAP_BOUNDS}
+						maxZoomLevel={MAX_ZOOM}
+						minZoomLevel={MIN_ZOOM}
+						animationMode={'flyTo'}
+						animationDuration={1000}
+						centerCoordinate={CENTER}
+					/>
+					{this.renderEndPin()}
+					{this.renderStartPin()}
+				</MapboxGL.MapView>
 				<Icon
-					containerStyle = {styles.drawerButton}
-					name='menuunfold'
-					type='antdesign'
+					containerStyle={styles.drawerButton}
+					name="menuunfold"
+					type="antdesign"
 					color={MID_BULE_COLOR}
 					raised
 					onPress={this.onDrawerPressed}
 					size={20}
 				/>
 				<Icon
-					containerStyle = {styles.myLocationButton}
-					name='my-location'
-					type='material'
+					containerStyle={styles.myLocationButton}
+					name="my-location"
+					type="material"
 					color={MID_BULE_COLOR}
 					raised
 					onPress={this.pick}
@@ -253,18 +303,20 @@ class HomeView extends Component {
 				{this.renderPickMenu()}
 				{this.renderFindRouteButton()}
 			</SafeAreaView>
-			);
-		}
+		)
+	}
 }
-			
+
 const mapStateToProps = state => ({
-	
-	
+	start: state.searchRoute.start,
+	end: state.searchRoute.end,
 })
 
 const mapDispatchToProps = dispatch => ({
-	
+	setStart: data => dispatch(setStart(data)),
+	setEnd: data => dispatch(setEnd(data)),
+	resetEnd: () => dispatch(resetEnd()),
+	resetStart: () => dispatch(resetStart()),
 })
 
-export default connect(mapStateToProps, mapDispatchToProps)(HomeView);
-			
+export default connect(mapStateToProps, mapDispatchToProps)(HomeView)
