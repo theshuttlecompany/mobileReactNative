@@ -6,7 +6,7 @@ const endPoint = 'http://localhost:8801/otp/routers/default/plan?'
 // local = endPoint
 // showIntermediateStops=true
 const params =
-	'mode=TRANSIT%2CWALK&maxWalkDistance=804.672&arriveBy=false&wheelchair=false&locale=en&showIntermediateStops=true'
+	'mode=TRANSIT%2CWALK&maxWalkDistance=2000.0&arriveBy=false&wheelchair=false&locale=en&showIntermediateStops=true'
 
 //fromPlace LAT,LON
 //toPlace
@@ -39,9 +39,9 @@ export default fetchRoute = async (from, to) => {
 	const fromPlace = `fromPlace=${from[1].toFixed(8)},${from[0].toFixed(8)}`
 	const toPlace = `toPlace=${to[1].toFixed(8)},${to[0].toFixed(8)}`
 	const date = getCurrentDate()
-	const time = getCurrentTime()
+	const time = '10%3A07am'
+	console.log(time)
 	const url = `${endPoint}${fromPlace}&${toPlace}&date=${date}&time=${time}&${params}`
-	console.log(url)
 	try {
 		const res = await fetch(url)
 		const resJSON = await res.json()

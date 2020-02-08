@@ -110,7 +110,6 @@ export default class ActionSheet extends Component {
 
 	onPressItem = item => {
 		const { onOptionSelect } = this.state
-		console.log(item)
 		onOptionSelect({
 			name: item.text,
 			location: item.center,

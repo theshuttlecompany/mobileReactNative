@@ -9,6 +9,7 @@ import store from './store'
 import SideBarView from './views/SidebarView'
 import ActionSheet from './views/ActionSheet/index'
 import SearchPlaceView from './views/SearchPlaceView'
+import DetailedRouteView from './views/DetailedRouteSheet'
 
 const InsideStack = createDrawerNavigator(
 	{
@@ -18,8 +19,8 @@ const InsideStack = createDrawerNavigator(
 		AboutView: {
 			getScreen: () => require('./views/AboutView').default,
 		},
-		NewRouteView: {
-			getScreen: () => require('./views/NewRouteView').default,
+		MyWaltView: {
+			getScreen: () => require('./views/MyWaltView').default,
 		},
 		SettingsView: {
 			getScreen: () => require('./views/SettingsView').default,
@@ -50,6 +51,7 @@ class CustomInsideStack extends React.Component {
 				<InsideStackModal navigation={navigation} />
 				<ActionSheet />
 				<SearchPlaceView />
+				<DetailedRouteView />
 			</React.Fragment>
 		)
 	}

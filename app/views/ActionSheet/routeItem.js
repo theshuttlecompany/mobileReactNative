@@ -36,10 +36,6 @@ const Walk = React.memo(({ duration }) => {
 	)
 })
 
-// const Van = React.memo(() => {
-
-// })
-
 const Seperator = React.memo(() => {
 	return (
 		<Icon
@@ -62,10 +58,10 @@ export default class RouteItem extends Component {
 			let item = null
 			switch (leg.mode) {
 				case 'WALK':
-					item = <Walk duration={leg.duration} />
+					item = <Walk duration={leg.duration} key={i} />
 					break
 				case 'BUS':
-					item = <Bus />
+					item = <Bus key={i} />
 					break
 			}
 			if (i == legs.length - 1) {
@@ -81,7 +77,7 @@ export default class RouteItem extends Component {
 	}
 
 	render() {
-		const { item, onPress } = this.props
+		const { item, onPress, keys } = this.props
 		let { duration, startTime, endTime, legs } = item
 		// startTime = moment
 		// 	.unix(startTime)
@@ -93,7 +89,7 @@ export default class RouteItem extends Component {
 		// 	.format('LT')
 		duration = (duration / 60).toFixed()
 		return (
-			<TouchableOpacity onPress={onPress}>
+			<TouchableOpacity onPress={() => onPress(item)} key={keys}>
 				<View style={styles.routeItemContainer}>
 					<View style={{ width: '80%' }}>
 						<Text style={styles.recomText}>RECOMMENDED ROUTE</Text>

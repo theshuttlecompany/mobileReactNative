@@ -10,6 +10,7 @@ import { HEIGHT } from '../../utils/deviceInfo'
 import fetchRoutes from '../../api/fetchRoutes'
 import styles from './styles'
 import { setRoute } from '../../actions/route'
+import {LISTENER as DETAILED_ROUTE} from '../DetailedRouteSheet';
 
 export const LISTENER = 'ActionSheet'
 
@@ -59,6 +60,20 @@ class ActionSheet extends Component {
 		this.modalRef.current.close()
 	}
 
+	handleItemPress = (route) => {
+		EventEmitter.emit(DETAILED_ROUTE);
+		this.props.setRoute(route);
+		this.reset();
+	}
+
+	reset = () => {
+		this.setState({
+			isFetching: true,
+			data: {},
+		})
+		this.hideActionSheet();
+	}
+
 	renderInner = () => {
 		const { isFetching, data, showError } = this.state
 		if (isFetching) {
@@ -66,7 +81,6 @@ class ActionSheet extends Component {
 				<View style={styles.spinner}>
 					<Spinner
 						type="ThreeBounce"
-						size={30}
 						color="#aaa"
 						size={70}
 					/>
@@ -80,8 +94,10 @@ class ActionSheet extends Component {
 				</Text>
 			)
 		}
-		return data.map(item => {
-			return <RouteItem item={item} onPress={this.props.setRoute} />
+		return data.map((item, i) => {
+			return (
+				<RouteItem item={item} onPress={this.handleItemPress} keys={i} />
+			)
 		})
 	}
 

@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native'
 import { HEIGHT, WIDTH } from '../../utils/deviceInfo'
-import { LIGHT_BULE_COLOR, DARK_BULE_COLOR } from '../../constants/color'
+import { LIGHT_BULE_COLOR, DARK_BULE_COLOR, RED } from '../../constants/color'
 export default StyleSheet.create({
 	drawerButton: {
 		position: 'absolute',
@@ -60,7 +60,7 @@ export default StyleSheet.create({
 	},
 	findRouteButton: {
 		position: 'absolute',
-		bottom: 170,
+		bottom: 180,
 		width: 90,
 		height: 40,
 		left: 10,
@@ -69,4 +69,59 @@ export default StyleSheet.create({
 		backgroundColor: DARK_BULE_COLOR,
 		color: '#fff',
 	},
+	resetRoute: {
+		position: 'absolute',
+		position: 'absolute',
+		bottom: 170,
+		left: 100,
+	},
+	openDetail: {
+		position: 'absolute',
+		position: 'absolute',
+		bottom: 170,
+		left: 150,
+	},
 })
+
+export const lineStyle = {
+	WALK: {
+		lineColor: '#000000',
+		lineWidth: [
+			'interpolate',
+			['linear'],
+			['zoom'],
+			10,
+			0.5,
+			11,
+			1,
+			12,
+			1,
+			13,
+			3,
+			16,
+			8,
+		],
+		lineDasharray: [1, 3],
+		lineCap: 'round',
+		lineOpacity: 0.5,
+	},
+	BUS: {
+		lineColor: RED,
+		lineCap: 'round',
+		lineWidth: [
+			'interpolate',
+			['linear'],
+			['zoom'],
+			10,
+			0.5,
+			11,
+			1,
+			12,
+			2,
+			13,
+			5,
+			16,
+			10,
+		],
+	},
+}

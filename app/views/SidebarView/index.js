@@ -37,16 +37,16 @@ export default class SidebarView extends Component {
 					current={activeItemKey === 'HomeView'}
 				/>
 				<SidebarItem
-					text={'Register new route'}
+					text={'My Walt'}
 					left={
 						<Icon
-							name='map'
-							type='entypo'
+							name='wallet'
+							type='antdesign'
 							color={MID_BULE_COLOR}
 							size={16}
 						/>
 					}
-					onPress={() => this.sidebarNavigate('NewRouteView')}
+					onPress={() => this.sidebarNavigate('MyWaltView')}
 					current={activeItemKey === 'NewRouteView'}
 				/>
 				<SidebarItem

@@ -5,7 +5,7 @@ const initialState = []
 export default function route(state = initialState, action) {
 	switch (action.type) {
 		case ROUTE.SET:
-			return action.data
+			return action.data.legs
 		case ROUTE.RESET:
 			return initialState
 		default:

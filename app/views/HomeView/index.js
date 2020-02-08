@@ -9,11 +9,13 @@ import {
 import { Icon, Divider } from 'react-native-elements'
 import MapboxGL from '@react-native-mapbox-gl/maps'
 import { connect } from 'react-redux'
+import polyline from '@mapbox/polyline'
 
-import styles from './styles'
+import styles, { lineStyle } from './styles'
 import { MID_BULE_COLOR, GREEN, RED } from '../../constants/color'
 import { LISTENER as LISTENER_ACTIONSHEET } from '../ActionSheet'
 import { LISTENER as LISTENER_SEARCH_PLACE } from '../SearchPlaceView'
+import { LISTENER as LISTENER_DETAIL } from '../DetailedRouteSheet'
 import EventEmitter from '../../utils/events'
 import {
 	setStart,
@@ -24,6 +26,44 @@ import {
 import startIcon from '../../statics/start.png'
 import endIcon from '../../statics/end.png'
 import fetchRoute from '../../api/fetchRoutes'
+import { resetRoute } from '../../actions/route'
+import { TouchableOpacity } from 'react-native-gesture-handler'
+
+const layerStyles = {
+	origin: {
+		circleRadius: 5,
+		circleColor: 'white',
+	},
+	destination: {
+		circleRadius: 5,
+		circleColor: 'white',
+	},
+	route: {
+		lineColor: '#000000',
+		lineWidth: [
+			'interpolate',
+			['linear'],
+			['zoom'],
+			10,
+			0.5,
+			11,
+			1,
+			12,
+			2,
+			13,
+			5,
+			16,
+			10,
+		],
+		lineDasharray: [1, 3],
+		lineCap: 'round',
+		lineOpacity: 0.5,
+	},
+	progress: {
+		lineColor: '#314ccd',
+		lineWidth: 3,
+	},
+}
 
 const OPTION = {
 	START: 'start',
@@ -118,6 +158,10 @@ class HomeView extends Component {
 
 	showActionSheet = () => {
 		EventEmitter.emit(LISTENER_ACTIONSHEET)
+	}
+
+	showDetailActionSheet = () => {
+		EventEmitter.emit(LISTENER_DETAIL)
 	}
 
 	setEndLocation = async () => {
@@ -215,6 +259,65 @@ class HomeView extends Component {
 		}
 		return null
 	}
+	renderResetRouteButton = () => {
+		const { route } = this.props
+
+		if (!route.length) {
+			return null
+		}
+		return (
+			<Icon
+				name="cross"
+				type="entypo"
+				color={RED}
+				containerStyle={styles.resetRoute}
+				reverse
+				raised
+				onPress={this.props.resetRoute}
+				size={20}
+			/>
+		)
+	}
+
+	renderOpenDetailbutton = () => {
+		const { route } = this.props
+
+		if (!route.length) {
+			return null
+		}
+		return (
+			<Icon
+				name="map-marker-path"
+				type="material-community"
+				color={MID_BULE_COLOR}
+				containerStyle={styles.openDetail}
+				reverse
+				raised
+				onPress={this.showDetailActionSheet}
+				size={20}
+			/>
+		)
+	}
+
+	renderRoute = () => {
+		const { route } = this.props
+
+		if (!route.length) {
+			return null
+		}
+		return route.map((leg, i) => {
+			let geoJSON = polyline.toGeoJSON(leg.legGeometry.points)
+			const feture = MapboxGL.geoUtils.makeFeature(geoJSON)
+			return (
+				<MapboxGL.ShapeSource id={'routeSource' + i} shape={feture}>
+					<MapboxGL.LineLayer
+						id={'routeFill' + i}
+						style={lineStyle[leg.mode]}
+					/>
+				</MapboxGL.ShapeSource>
+			)
+		})
+	}
 
 	renderStartPin = () => {
 		const { start } = this.props
@@ -278,6 +381,7 @@ class HomeView extends Component {
 						animationDuration={1000}
 						centerCoordinate={CENTER}
 					/>
+					{this.renderRoute()}
 					{this.renderEndPin()}
 					{this.renderStartPin()}
 				</MapboxGL.MapView>
@@ -302,6 +406,8 @@ class HomeView extends Component {
 				{this.renderSelectionPin()}
 				{this.renderPickMenu()}
 				{this.renderFindRouteButton()}
+				{this.renderResetRouteButton()}
+				{this.renderOpenDetailbutton()}
 			</SafeAreaView>
 		)
 	}
@@ -310,6 +416,7 @@ class HomeView extends Component {
 const mapStateToProps = state => ({
 	start: state.searchRoute.start,
 	end: state.searchRoute.end,
+	route: state.route,
 })
 
 const mapDispatchToProps = dispatch => ({
@@ -317,6 +424,7 @@ const mapDispatchToProps = dispatch => ({
 	setEnd: data => dispatch(setEnd(data)),
 	resetEnd: () => dispatch(resetEnd()),
 	resetStart: () => dispatch(resetStart()),
+	resetRoute: () => dispatch(resetRoute()),
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(HomeView)
