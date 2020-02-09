@@ -1,6 +1,11 @@
 import { StyleSheet } from 'react-native'
 import { HEIGHT, WIDTH } from '../../utils/deviceInfo'
-import { LIGHT_BULE_COLOR, DARK_BULE_COLOR, RED } from '../../constants/color'
+import {
+	LIGHT_BULE_COLOR,
+	DARK_BULE_COLOR,
+	RED,
+	MID_BULE_COLOR,
+} from '../../constants/color'
 export default StyleSheet.create({
 	drawerButton: {
 		position: 'absolute',
@@ -85,7 +90,7 @@ export default StyleSheet.create({
 
 export const lineStyle = {
 	WALK: {
-		lineColor: '#000000',
+		lineColor: MID_BULE_COLOR,
 		lineWidth: [
 			'interpolate',
 			['linear'],
@@ -103,7 +108,6 @@ export const lineStyle = {
 		],
 		lineDasharray: [1, 3],
 		lineCap: 'round',
-		lineOpacity: 0.5,
 	},
 	BUS: {
 		lineColor: RED,

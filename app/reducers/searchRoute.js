@@ -3,11 +3,11 @@ import { SEARCH_ROUTE } from '../actions/actionTypes'
 const initialState = {
 	start: {
 		name: 'Your Pick Up Location',
-		location: null,
+		location: [72.5977, 23.0111],
 	},
 	end: {
 		name: 'Your Destination Location',
-		location: null,
+		location: [72.5482, 23.009],
 	},
 }
 

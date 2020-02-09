@@ -10,6 +10,8 @@ import { Icon, Divider } from 'react-native-elements'
 import MapboxGL from '@react-native-mapbox-gl/maps'
 import { connect } from 'react-redux'
 import polyline from '@mapbox/polyline'
+import { TouchableOpacity } from 'react-native-gesture-handler'
+import PubNubReact from 'pubnub-react'
 
 import styles, { lineStyle } from './styles'
 import { MID_BULE_COLOR, GREEN, RED } from '../../constants/color'
@@ -27,43 +29,9 @@ import startIcon from '../../statics/start.png'
 import endIcon from '../../statics/end.png'
 import fetchRoute from '../../api/fetchRoutes'
 import { resetRoute } from '../../actions/route'
-import { TouchableOpacity } from 'react-native-gesture-handler'
+import PulseCircleLayer from '../PulseCircleLayer'
 
-const layerStyles = {
-	origin: {
-		circleRadius: 5,
-		circleColor: 'white',
-	},
-	destination: {
-		circleRadius: 5,
-		circleColor: 'white',
-	},
-	route: {
-		lineColor: '#000000',
-		lineWidth: [
-			'interpolate',
-			['linear'],
-			['zoom'],
-			10,
-			0.5,
-			11,
-			1,
-			12,
-			2,
-			13,
-			5,
-			16,
-			10,
-		],
-		lineDasharray: [1, 3],
-		lineCap: 'round',
-		lineOpacity: 0.5,
-	},
-	progress: {
-		lineColor: '#314ccd',
-		lineWidth: 3,
-	},
-}
+const CHANNEL = 'demoChannel'
 
 const OPTION = {
 	START: 'start',
@@ -105,10 +73,31 @@ class HomeView extends Component {
 				latitude: 23.0225,
 			},
 			selection: OPTION.NONE,
+			busLoc: null,
 		}
 		this.mapRef = React.createRef()
-		this.startMarker = null
-		this.endMarker = null
+		this.startMarker = null //[72.5977,23.0111]
+		this.endMarker = null //[72.5482,23.0090]
+		this.pubnub = new PubNubReact({
+			publishKey: 'pub-c-85b6e53e-c338-402d-bf03-770625f0fd04',
+			subscribeKey: 'sub-c-7772d0c0-4a7b-11ea-80a4-42690e175160',
+		})
+		this.pubnub.init(this)
+	}
+	async componentDidMount() {
+		this.setUpApp()
+	}
+
+	async setUpApp() {
+		this.pubnub.getMessage(CHANNEL, msg => {
+			console.log(msg)
+			if (msg.message && msg.message.location) {
+				this.setState({ busLoc: msg.message.location })
+			}
+		})
+		this.pubnub.subscribe({
+			channels: [CHANNEL],
+		})
 	}
 
 	onDrawerPressed = () => {
@@ -324,7 +313,6 @@ class HomeView extends Component {
 		if (!start.location) {
 			return null
 		}
-
 		const feture = MapboxGL.geoUtils.makeFeature({
 			type: 'Point',
 			coordinates: start.location,
@@ -361,6 +349,18 @@ class HomeView extends Component {
 		)
 	}
 
+	renderBusLocation = () => {
+		const { busLoc } = this.state
+		if (!busLoc) {
+			return
+		}
+		const feture = MapboxGL.geoUtils.makeFeature({
+			type: 'Point',
+			coordinates: busLoc,
+		})
+		return <PulseCircleLayer shape={feture} />
+	}
+
 	render() {
 		return (
 			<SafeAreaView style={{ flex: 1 }}>
@@ -384,6 +384,7 @@ class HomeView extends Component {
 					{this.renderRoute()}
 					{this.renderEndPin()}
 					{this.renderStartPin()}
+					{this.renderBusLocation()}
 				</MapboxGL.MapView>
 				<Icon
 					containerStyle={styles.drawerButton}
@@ -427,4 +428,7 @@ const mapDispatchToProps = dispatch => ({
 	resetRoute: () => dispatch(resetRoute()),
 })
 
-export default connect(mapStateToProps, mapDispatchToProps)(HomeView)
+export default connect(
+	mapStateToProps,
+	mapDispatchToProps
+)(HomeView)
